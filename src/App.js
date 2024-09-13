@@ -1,25 +1,18 @@
-import logo from './logo.svg';
-import './App.css';
+import "./App.css";
+import ChatLayout from "./ChatLayout";
+import SidePanel from "./SidePanel";
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="flex h-screen bg-gray-900">
+      <SidePanel />
+      <ChatLayout />
     </div>
   );
 }
 
 export default App;
+
+// <button className="fixed top-4 right-16 bg-gray-600 text-white p-2 z-50 rounded-md">
+//   <FontAwesomeIcon icon={faPenToSquare} />
+// </button>;
