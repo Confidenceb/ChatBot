@@ -53,7 +53,7 @@ function ChatLayout() {
   // Predefined greetings and responses
   const predefinedResponses = [
     {
-      pattern: /h(i|y+)|what('s up|s up)|hello|how('s it going| are you)/i,
+      pattern: /h(i|ey+)|what('s up|s up)|hello|how('s it going| are you)/i,
       response: "Hi there! How can I help you today?",
     },
     {
