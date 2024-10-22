@@ -88,7 +88,9 @@ function ChatLayout() {
       handlePythagorasConversation(inputValue);
     }, 1000);
   };
-
+  // ****************************************
+  // Pythagoras Theorem
+  // ****************************************
   const handlePythagorasConversation = (userInput) => {
     let response = "";
 
@@ -117,55 +119,73 @@ function ChatLayout() {
 
       if (find === "hypotenuse") {
         response =
-          "To calculate the hypotenuse, please provide the opposite side.";
+          "To calculate the hypotenuse, please provide the opposite side with its unit (e.g., 3cm or 4m).";
       } else if (find === "opposite") {
         response =
-          "To calculate the opposite side, please provide the hypotenuse.";
+          "To calculate the opposite side, please provide the hypotenuse with its unit (e.g., 5cm or 7m).";
       } else if (find === "adjacent") {
         response =
-          "To calculate the adjacent side, please provide the hypotenuse.";
+          "To calculate the adjacent side, please provide the hypotenuse with its unit (e.g., 5cm or 7m).";
       }
     }
-    // Step 2: Handle cases where user provides numeric inputs for calculations
+    // Step 2: Handle cases where user provides numeric inputs with units for calculations
     else if (currentStep) {
-      const cleanedInput = userInput.replace(/[^\d.]/g, "").trim();
-      const value = parseFloat(cleanedInput);
+      const unitRegex = /(\d+(\.\d+)?)(cm|mm|in|ft|m)?/i; // Regex to match a number with an optional unit
+      const matches = userInput.match(unitRegex);
 
-      if (isNaN(value)) {
-        response = "Please provide a valid number.";
+      if (!matches) {
+        response =
+          "Please provide a valid number and optional unit (e.g., 5cm, 7m).";
       } else {
-        if (currentStep === "hypotenuse") {
-          if (!values.opposite) {
-            setValues({ ...values, opposite: value });
-            response = "Great! Now, please provide the adjacent side.";
-          } else {
-            const hypotenuse = Math.sqrt(
-              values.opposite ** 2 + value ** 2
-            ).toFixed(2);
-            response = `The hypotenuse is: ${hypotenuse}`;
-            resetConversation();
-          }
-        } else if (currentStep === "opposite") {
-          if (!values.hypotenuse) {
-            setValues({ ...values, hypotenuse: value });
-            response = "Great! Now, please provide the adjacent side.";
-          } else {
-            const opposite = Math.sqrt(
-              values.hypotenuse ** 2 - value ** 2
-            ).toFixed(2);
-            response = `The opposite side is: ${opposite}`;
-            resetConversation();
-          }
-        } else if (currentStep === "adjacent") {
-          if (!values.hypotenuse) {
-            setValues({ ...values, hypotenuse: value });
-            response = "Great! Now, please provide the opposite side.";
-          } else {
-            const adjacent = Math.sqrt(
-              values.hypotenuse ** 2 - value ** 2
-            ).toFixed(2);
-            response = `The adjacent side is: ${adjacent}`;
-            resetConversation();
+        const value = parseFloat(matches[1]); // Extract numeric value
+        const unit = matches[3] || ""; // Default to no unit if none is provided
+
+        if (isNaN(value)) {
+          response = "Please provide a valid number.";
+        } else {
+          if (currentStep === "hypotenuse") {
+            if (!values.opposite) {
+              setValues({ ...values, opposite: value, unit });
+              response = `Great! Now, please provide the adjacent side with the same unit (${unit}).`;
+            } else {
+              const hypotenuse = Math.sqrt(
+                values.opposite ** 2 + value ** 2
+              ).toFixed(2);
+              response = `The hypotenuse is: ${hypotenuse}${unit}`;
+              resetConversation();
+            }
+          } else if (currentStep === "opposite") {
+            if (!values.hypotenuse) {
+              setValues({ ...values, hypotenuse: value, unit });
+              response = `Great! Now, please provide the adjacent side with the same unit (${unit}).`;
+            } else {
+              // Validate that hypotenuse is greater than the adjacent side
+              if (value >= values.hypotenuse) {
+                response = `Error: The adjacent side cannot be larger than the hypotenuse. Please provide a valid adjacent side.`;
+              } else {
+                const opposite = Math.sqrt(
+                  values.hypotenuse ** 2 - value ** 2
+                ).toFixed(2);
+                response = `The opposite side is: ${opposite}${unit}`;
+                resetConversation();
+              }
+            }
+          } else if (currentStep === "adjacent") {
+            if (!values.hypotenuse) {
+              setValues({ ...values, hypotenuse: value, unit });
+              response = `Great! Now, please provide the opposite side with the same unit (${unit}).`;
+            } else {
+              // Validate that hypotenuse is greater than the opposite side
+              if (value >= values.hypotenuse) {
+                response = `Error: The opposite side cannot be larger than the hypotenuse. Please provide a valid opposite side.`;
+              } else {
+                const adjacent = Math.sqrt(
+                  values.hypotenuse ** 2 - value ** 2
+                ).toFixed(2);
+                response = `The adjacent side is: ${adjacent}${unit}`;
+                resetConversation();
+              }
+            }
           }
         }
       }
