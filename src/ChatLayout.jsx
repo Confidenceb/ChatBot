@@ -40,26 +40,35 @@ export default ChatLayout;
 
 */
 
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 function ChatLayout() {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
-  const [botResponse, setBotResponse] = useState(""); // Holds the typewriting message text
+  const [currentStep, setCurrentStep] = useState(""); // Tracks which part of the interaction we are in
+  const [values, setValues] = useState({}); // Stores the values provided by the user (opposite, adjacent, hypotenuse)
+  const [botResponse, setBotResponse] = useState("");
+  const chatContainerRef = useRef(null); // Reference to the chat container for scrolling
 
-  // Step 1: Define bot responses with regex patterns
+  // Predefined greetings and responses
   const predefinedResponses = [
     {
-      pattern: /hello|hi|hey/i,
+      pattern: /h(i|y+)|what('s up|s up)|hello|how('s it going| are you)/i,
       response: "Hi there! How can I help you today?",
     },
-    { pattern: /weather/i, response: "The weather today is sunny and clear." },
-    { pattern: /time/i, response: "The current time is 12:00 PM." },
-    { pattern: /bye/i, response: "Goodbye! Have a great day!" },
     {
-      pattern: /.*/,
-      response: "I'm sorry, I don't understand. Can you rephrase?",
-    }, // Default response
+      pattern: /\bweather\b/i, // Ensure "weather" is matched as a whole word
+      response: "The weather today is sunny and clear.",
+    },
+    {
+      // pattern: /\btime\b/i, // Ensure "time" is matched as a whole word
+      pattern: /\btime\b/i,
+      response: `The current time is ${new Date().toLocaleTimeString()}.`,
+    },
+    {
+      pattern: /\bbye\b/i,
+      response: "Goodbye! Have a great day!",
+    },
   ];
 
   const handleSendMessage = (e) => {
@@ -73,65 +82,161 @@ function ChatLayout() {
     };
 
     setMessages([...messages, newMessage]);
-    setInputValue(""); // Clear the input field
+    setInputValue("");
 
-    // Simulate bot typing with typewriter effect
     setTimeout(() => {
-      const botMessageText = getBotResponse(inputValue); // Get response based on user input
-      startTypewriterEffect(botMessageText);
-    }, 1000); // 1 second delay before bot starts typing
+      handlePythagorasConversation(inputValue);
+    }, 1000);
   };
 
-  // Step 2: Function to get the bot response by matching user input to regex patterns
-  const getBotResponse = (userInput) => {
-    let response = "I'm sorry, I don't understand."; // Default response
+  const handlePythagorasConversation = (userInput) => {
+    let response = "";
 
-    // Normalize user input (lowercase and trimmed)
+    // Normalize input for easier handling
     const normalizedInput = userInput.toLowerCase().trim();
 
-    // Loop through predefined responses to find a match
-    for (let item of predefinedResponses) {
-      if (item.pattern.test(normalizedInput)) {
-        response = item.response;
-        break; // Stop when the first match is found
+    // Check predefined responses first
+    const predefinedResponse = predefinedResponses.find((entry) =>
+      entry.pattern.test(normalizedInput)
+    );
+    if (predefinedResponse) {
+      response = predefinedResponse.response;
+      startTypewriterEffect(response);
+      return;
+    }
+
+    // Step 1: Check if the user is initiating a Pythagorean calculation
+    if (
+      /calculate|solve|find/i.test(normalizedInput) &&
+      /(hypotenuse|opposite|adjacent)/i.test(normalizedInput)
+    ) {
+      const find = normalizedInput
+        .match(/hypotenuse|opposite|adjacent/i)[0]
+        .toLowerCase();
+      setCurrentStep(find);
+
+      if (find === "hypotenuse") {
+        response =
+          "To calculate the hypotenuse, please provide the opposite side.";
+      } else if (find === "opposite") {
+        response =
+          "To calculate the opposite side, please provide the hypotenuse.";
+      } else if (find === "adjacent") {
+        response =
+          "To calculate the adjacent side, please provide the hypotenuse.";
       }
     }
-    return response;
+    // Step 2: Handle cases where user provides numeric inputs for calculations
+    else if (currentStep) {
+      const cleanedInput = userInput.replace(/[^\d.]/g, "").trim();
+      const value = parseFloat(cleanedInput);
+
+      if (isNaN(value)) {
+        response = "Please provide a valid number.";
+      } else {
+        if (currentStep === "hypotenuse") {
+          if (!values.opposite) {
+            setValues({ ...values, opposite: value });
+            response = "Great! Now, please provide the adjacent side.";
+          } else {
+            const hypotenuse = Math.sqrt(
+              values.opposite ** 2 + value ** 2
+            ).toFixed(2);
+            response = `The hypotenuse is: ${hypotenuse}`;
+            resetConversation();
+          }
+        } else if (currentStep === "opposite") {
+          if (!values.hypotenuse) {
+            setValues({ ...values, hypotenuse: value });
+            response = "Great! Now, please provide the adjacent side.";
+          } else {
+            const opposite = Math.sqrt(
+              values.hypotenuse ** 2 - value ** 2
+            ).toFixed(2);
+            response = `The opposite side is: ${opposite}`;
+            resetConversation();
+          }
+        } else if (currentStep === "adjacent") {
+          if (!values.hypotenuse) {
+            setValues({ ...values, hypotenuse: value });
+            response = "Great! Now, please provide the opposite side.";
+          } else {
+            const adjacent = Math.sqrt(
+              values.hypotenuse ** 2 - value ** 2
+            ).toFixed(2);
+            response = `The adjacent side is: ${adjacent}`;
+            resetConversation();
+          }
+        }
+      }
+    }
+    // Step 3: Default response when no match is found
+    else {
+      response = "I'm sorry, I don't understand. Can you rephrase?";
+    }
+
+    startTypewriterEffect(response);
+  };
+
+  const resetConversation = () => {
+    setCurrentStep("");
+    setValues({});
   };
 
   const startTypewriterEffect = (text) => {
-    setBotResponse(""); // Clear the response
+    setBotResponse(""); // Clear any existing response
     let index = 0;
-    let accumulatedText = ""; // Local variable to accumulate the characters
+    let accumulatedText = "";
 
     const typeInterval = setInterval(() => {
       if (index < text.length) {
-        accumulatedText += text.charAt(index); // Add each character to the local variable
+        accumulatedText += text.charAt(index);
         index++;
 
-        // Only update the state every few characters to avoid skipping
         if (index % 2 === 0 || index === text.length) {
-          setBotResponse(accumulatedText); // Update state with accumulated characters
+          setBotResponse(accumulatedText);
+
+          // Scroll during the typing effect
+          if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTop =
+              chatContainerRef.current.scrollHeight;
+          }
         }
       } else {
-        clearInterval(typeInterval);
+        clearInterval(typeInterval); // Stop the interval once all text is displayed
 
-        // After typewriter finishes, add the message to the messages array
         const newBotMessage = {
           id: messages.length + 2,
           text: accumulatedText,
           sender: "bot",
         };
         setMessages((prevMessages) => [...prevMessages, newBotMessage]);
-        setBotResponse(""); // Clear the botResponse once the message is saved
+        setBotResponse(""); // Clear the temporary botResponse
+
+        // Ensure the final scroll after typing effect is complete
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTop =
+            chatContainerRef.current.scrollHeight;
+        }
       }
-    }, 50); // Delay between each character in the typewriter effect
+    }, 50); // 50ms delay for each character
   };
+
+  // Auto scroll to the bottom when a new message is added
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [messages]);
 
   return (
     <div className="max-w-4xl h-screen mx-auto text-gray-100 w-full flex flex-col justify-between bg-gray-900 px-4">
       {/* Chat Messages Section */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-4">
+      <div
+        ref={chatContainerRef}
+        className="chat-container flex-1 overflow-y-auto py-4 space-y-4"
+      >
         {messages.map((message) => (
           <div
             key={message.id}
@@ -144,8 +249,6 @@ function ChatLayout() {
             </div>
           </div>
         ))}
-
-        {/* Typewriter effect for bot's response */}
         {botResponse && (
           <div className="flex justify-start">
             <div className="bg-gray-700 px-4 py-2 rounded-lg max-w-md relative">
@@ -181,3 +284,29 @@ const predefinedResponses = {
   bye: "Goodbye! Have a great day!",
   default: "I'm sorry, I don't understand. Can you rephrase?",
 };
+
+// ***********************************************************************************
+function hypFunction(opp, adj) {
+  const hyp = Math.sqrt(opp ** 2 + adj ** 2);
+  return hyp;
+}
+function oppFunction(hyp, adj) {
+  const opp = Math.sqrt(hyp ** 2 - adj ** 2);
+  return opp;
+}
+function adjFunction(opp, hyp) {
+  const adj = Math.sqrt(hyp ** 2 - opp ** 2);
+  return adj;
+}
+
+function theoremFunction(find, opp, adj, hyp) {
+  if (find === "hyp") {
+    return hypFunction(opp, adj);
+  } else if (find === "opp") {
+    return oppFunction(hyp, adj);
+  } else if (find === "adj") {
+    return adjFunction(opp, hyp);
+  } else {
+    return "Invalid find value. Please choose 'hyp', 'opp', or 'adj'.";
+  }
+}

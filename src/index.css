@@ -1,3 +1,19 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Hide scrollbar for WebKit browsers (Chrome, Safari) */
+.chat-container::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for Firefox */
+.chat-container {
+  scrollbar-width: none;
+}
+
+/* General scrollbar hiding without disabling scrolling */
+.chat-container {
+  -ms-overflow-style: none;
+  overflow-y: scroll;
+}

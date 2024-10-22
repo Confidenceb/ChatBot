@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faRectangleList,
@@ -16,6 +16,27 @@ function SidePanel() {
     "What is the currrent weather of Lagos state?",
   ];
   const itemsYesterday = ["Chat-bot ReactJS Tailwind", "What is Programming?"];
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 850) {
+        setIsPanelOpen(false); // Close the panel on small screens
+      } else if (window.innerWidth > 850) {
+        setIsPanelOpen(true); // Open the panel on larger screens
+      }
+    };
+
+    // Add event listener to handle window resizing
+    window.addEventListener("resize", handleResize);
+
+    // Call the function on mount to check the initial window size
+    handleResize();
+
+    // Cleanup the event listener on component unmount
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   return (
     <>
